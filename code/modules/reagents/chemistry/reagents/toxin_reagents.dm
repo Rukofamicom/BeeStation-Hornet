@@ -7,13 +7,30 @@
 	color = "#CF3600" // rgb: 207, 54, 0
 	taste_description = "bitterness"
 	taste_mult = 1.2
-	var/toxpwr = 1.5
+	var/toxpwr = 3.75 //How much total damage the toxin does per unit
+	var/toxtick = 0 //How much power the current tick of the toxin has, based on toxpwr and metaboliation_rate
+	var/sedative = 0 //Does this toxin have a sedative effect?
+	var/base_metab = REAGENTS_METABOLISM //Base metabolism doesn't change, but actual metabolism does for toxins
 	var/silent_toxin = FALSE //won't produce a pain message when processed by liver/life() if there isn't another non-silent toxin present.
 
 /datum/reagent/toxin/on_mob_life(mob/living/carbon/M)
+	metabolization_rate = base_metab*max(min((volume-5)*0.0666 + 0.5, 1.5), 0.5)  //metabolization rate +/- 50% based on current volume of the toxin in the victim
+	toxtick = toxpwr*metabolization_rate //defining current power of the toxin for this tick globally, rather than in each individual toxin
+	to_chat(M, "<span class='notice'>DEBUG: [name] tox:[toxtick] u/t:[metabolization_rate] Vol:[volume]</span>") 								//DEBUG TEXT DELETE LINE
+	if(sedative) //All sedatives follow the same base formula for knockouts. 
+		if(M.drowsyness >= 50 && current_cycle >= 8)		
+			M.Sleeping(40, 0)
+		if(M.drowsyness <= 60) //Toxins will never push drowsyness beyond 60 so that waking from a waning sedative is possible before it has completely left the system. 
+			M.drowsyness += min(volume*metabolization_rate, 5)
+	if(M.drowsyness <= 60 && sedative)																											// DEBUG TEXT DELETE LINE
+		to_chat(M, "<span class='notice'>DEBUG: Drowsyness = [M.drowsyness] + [min(volume*metabolization_rate, 5)]</span>") 					// DEBUG TEXT DELETE LINE
+	else if(M.drowsyness && sedative)																											// DEBUG TEXT DELETE LINE
+		to_chat(M, "<span class='notice'>DEBUG: Drowsyness = [M.drowsyness] + 0</span>") 														// DEBUG TEXT DELETE LINE
 	if(toxpwr)
-		M.adjustToxLoss(toxpwr*REM, 0)
 		. = TRUE
+	if(name == "Toxin")
+		M.adjustToxLoss(toxtick*REM, 0)
+		to_chat(M, "<span class='danger'>DEBUG: Should only appear for normal, basic toxin</span>") 											//DEBUG TEXT DELETE LINE
 	..()
 
 /datum/reagent/toxin/amatoxin
@@ -285,44 +302,37 @@
 
 /datum/reagent/toxin/chloralhydrate
 	name = "Chloral Hydrate"
-	description = "A powerful sedative that induces confusion and drowsiness before putting its target to sleep."
+	description = "A sedative that also induces confusion"
 	silent_toxin = TRUE
 	reagent_state = SOLID
 	color = "#000067" // rgb: 0, 0, 103
 	toxpwr = 0
-	metabolization_rate = 1.5 * REAGENTS_METABOLISM
+	sedative = 1
+	base_metab = 1.5 * REAGENTS_METABOLISM
 
 /datum/reagent/toxin/chloralhydrate/on_mob_life(mob/living/carbon/M)
-	switch(current_cycle)
-		if(1 to 10)
-			M.confused += 2
-			M.drowsyness += 2
-		if(10 to 50)
-			M.Sleeping(40, 0)
-			. = 1
-		if(51 to INFINITY)
-			M.Sleeping(40, 0)
-			M.adjustToxLoss((current_cycle - 50)*REM, 0)
-			. = 1
+	M.confused += 2
+	if(current_cycle >= 50 && M.drowsyness >= 50)
+		toxpwr = (current_cycle - 50)
 	..()
 
 /datum/reagent/toxin/fakebeer	//disguised as normal beer for use by emagged brobots
 	name = "Beer"
-	description = "A specially-engineered sedative disguised as beer. It induces instant sleep in its target."
+	description = "A specially-engineered sedative disguised as beer. It induces delayed, but rapid sleep in its target."
 	color = "#664300" // rgb: 102, 67, 0
-	metabolization_rate = 1.5 * REAGENTS_METABOLISM
+	base_metab = 1.5 * REAGENTS_METABOLISM
 	taste_description = "piss water"
 	glass_icon_state = "beerglass"
 	glass_name = "glass of beer"
 	glass_desc = "A freezing pint of beer."
 
 /datum/reagent/toxin/fakebeer/on_mob_life(mob/living/carbon/M)
-	switch(current_cycle)
-		if(1 to 50)
-			M.Sleeping(40, 0)
-		if(51 to INFINITY)
-			M.Sleeping(40, 0)
-			M.adjustToxLoss((current_cycle - 50)*REM, 0)
+	if(current_cycle == 8)
+		sedative = 1
+		M.confused += 20
+		M.drowsyness += 30
+	if(current_cycle >= 50 && M.drowsyness >= 50)
+		toxpwr = (current_cycle - 50)
 	return ..()
 
 /datum/reagent/toxin/coffeepowder
@@ -371,7 +381,7 @@
 	description = "An extremely radioactive material in liquid form. Ingestion results in fatal irradiation."
 	reagent_state = LIQUID
 	color = "#787878"
-	metabolization_rate = 0.25 * REAGENTS_METABOLISM
+	base_metab = 0.25 * REAGENTS_METABOLISM
 	toxpwr = 0
 	process_flags = ORGANIC | SYNTHETIC
 
@@ -385,7 +395,7 @@
 	silent_toxin = TRUE
 	reagent_state = LIQUID
 	color = "#FA6464"
-	metabolization_rate = 0.25 * REAGENTS_METABOLISM
+	base_metab = 0.25 * REAGENTS_METABOLISM
 	overdose_threshold = 30
 	toxpwr = 0
 
@@ -419,7 +429,7 @@
 	silent_toxin = TRUE
 	reagent_state = LIQUID
 	color = "#B4004B"
-	metabolization_rate = 0.5 * REAGENTS_METABOLISM
+	base_metab = 0.5 * REAGENTS_METABOLISM
 	toxpwr = 1
 
 /datum/reagent/toxin/formaldehyde/on_mob_life(mob/living/carbon/M)
@@ -434,7 +444,7 @@
 	description = "An exotic poison extracted from highly toxic fauna. Causes scaling amounts of toxin damage and bruising depending and dosage. Often decays into Histamine."
 	reagent_state = LIQUID
 	color = "#F0FFF0"
-	metabolization_rate = 0.25 * REAGENTS_METABOLISM
+	base_metab = 0.25 * REAGENTS_METABOLISM
 	toxpwr = 0
 
 /datum/reagent/toxin/venom/on_mob_life(mob/living/carbon/M)
@@ -452,7 +462,7 @@
 	description = "Fentanyl will inhibit brain function and cause toxin damage before eventually incapacitating its victim."
 	reagent_state = LIQUID
 	color = "#64916E"
-	metabolization_rate = 0.5 * REAGENTS_METABOLISM
+	base_metab = 0.5 * REAGENTS_METABOLISM
 	toxpwr = 0
 
 /datum/reagent/toxin/fentanyl/on_mob_life(mob/living/carbon/M)
@@ -469,7 +479,7 @@
 	description = "An infamous poison known for its use in assassination. Causes small amounts of toxin damage with a small chance of oxygen damage or a stun."
 	reagent_state = LIQUID
 	color = "#00B4FF"
-	metabolization_rate = 0.125 * REAGENTS_METABOLISM
+	base_metab = 0.125 * REAGENTS_METABOLISM
 	toxpwr = 1.25
 
 /datum/reagent/toxin/cyanide/on_mob_life(mob/living/carbon/M)
@@ -486,7 +496,7 @@
 	description = "The result of some abomination of cookery, food so bad it's toxic."
 	reagent_state = LIQUID
 	color = "#d6d6d8"
-	metabolization_rate = 0.25 * REAGENTS_METABOLISM
+	base_metab = 0.25 * REAGENTS_METABOLISM
 	toxpwr = 0.5
 	taste_description = "bad cooking"
 
@@ -496,7 +506,7 @@
 	silent_toxin = TRUE
 	reagent_state = LIQUID
 	color = "#C8C8C8"
-	metabolization_rate = 0.4 * REAGENTS_METABOLISM
+	base_metab = 0.4 * REAGENTS_METABOLISM
 	toxpwr = 0
 
 /datum/reagent/toxin/itching_powder/reaction_mob(mob/living/M, method=TOUCH, reac_volume)
@@ -528,7 +538,7 @@
 	silent_toxin = TRUE
 	reagent_state = LIQUID
 	color = "#7F10C0"
-	metabolization_rate = 0.5 * REAGENTS_METABOLISM
+	base_metab = 0.5 * REAGENTS_METABOLISM
 	toxpwr = 2.5
 
 /datum/reagent/toxin/initropidril/on_mob_life(mob/living/carbon/C)
@@ -559,7 +569,7 @@
 	silent_toxin = TRUE
 	reagent_state = LIQUID
 	color = "#195096"
-	metabolization_rate = 0.25 * REAGENTS_METABOLISM
+	base_metab = 0.25 * REAGENTS_METABOLISM
 	toxpwr = 0
 	taste_mult = 0 // undetectable, I guess?
 
@@ -577,7 +587,7 @@
 	silent_toxin = TRUE
 	reagent_state = LIQUID
 	color = "#6496FA"
-	metabolization_rate = 0.75 * REAGENTS_METABOLISM
+	base_metab = 0.75 * REAGENTS_METABOLISM
 	toxpwr = 0
 
 /datum/reagent/toxin/sodium_thiopental/on_mob_life(mob/living/carbon/M)
@@ -593,13 +603,12 @@
 	silent_toxin = TRUE
 	reagent_state = LIQUID
 	color = "#7DC3A0"
-	metabolization_rate = 0.125 * REAGENTS_METABOLISM
+	base_metab = 0.125 * REAGENTS_METABOLISM
+	sedative = 1
 	toxpwr = 0.5
 
 /datum/reagent/toxin/sulfonal/on_mob_life(mob/living/carbon/M)
-	if(current_cycle >= 22)
-		M.Sleeping(40, 0)
-	return ..()
+	..()
 
 /datum/reagent/toxin/amanitin
 	name = "Amanitin"
@@ -608,7 +617,7 @@
 	reagent_state = LIQUID
 	color = "#FFFFFF"
 	toxpwr = 0
-	metabolization_rate = 0.5 * REAGENTS_METABOLISM
+	base_metab = 0.5 * REAGENTS_METABOLISM
 
 /datum/reagent/toxin/amanitin/on_mob_delete(mob/living/M)
 	var/toxdamage = current_cycle*3*REM
@@ -623,7 +632,7 @@
 	taste_description = "mothballs"
 	reagent_state = LIQUID
 	color = "#F0FFF0"
-	metabolization_rate = 0.5 * REAGENTS_METABOLISM
+	base_metab = 0.5 * REAGENTS_METABOLISM
 	toxpwr = 0
 
 /datum/reagent/toxin/lipolicide/on_mob_life(mob/living/carbon/M)
@@ -638,7 +647,7 @@
 	description = "Coniine metabolizes extremely slowly, but deals high amounts of toxin damage and stops breathing."
 	reagent_state = LIQUID
 	color = "#7DC3A0"
-	metabolization_rate = 0.06 * REAGENTS_METABOLISM
+	base_metab = 0.06 * REAGENTS_METABOLISM
 	toxpwr = 1.75
 
 /datum/reagent/toxin/coniine/on_mob_life(mob/living/carbon/M)
@@ -650,7 +659,7 @@
 	description = "A powerful emetic, causes uncontrollable vomiting.  May result in vomiting organs at high doses."
 	reagent_state = LIQUID
 	color = "#2f6617" //A sickly green color
-	metabolization_rate = REAGENTS_METABOLISM
+	base_metab = REAGENTS_METABOLISM
 	overdose_threshold = 29
 	toxpwr = 0
 	taste_description = "vomit"
@@ -675,7 +684,7 @@
 	description = "Causes slight toxin damage followed by chain-stunning and oxygen damage."
 	reagent_state = LIQUID
 	color = "#191919"
-	metabolization_rate = 0.125 * REAGENTS_METABOLISM
+	base_metab = 0.125 * REAGENTS_METABOLISM
 	toxpwr = 1
 
 /datum/reagent/toxin/curare/on_mob_life(mob/living/carbon/M)
@@ -691,7 +700,7 @@
 	silent_toxin = TRUE
 	reagent_state = LIQUID
 	color = "#C8C8C8" //RGB: 200, 200, 200
-	metabolization_rate = 0.2 * REAGENTS_METABOLISM
+	base_metab = 0.2 * REAGENTS_METABOLISM
 	toxpwr = 0
 
 /datum/reagent/toxin/heparin/on_mob_life(mob/living/carbon/M)
@@ -709,7 +718,7 @@
 	silent_toxin = TRUE
 	reagent_state = LIQUID
 	color = "#AC88CA" //RGB: 172, 136, 202
-	metabolization_rate = 0.6 * REAGENTS_METABOLISM
+	base_metab = 0.6 * REAGENTS_METABOLISM
 	toxpwr = 0.5
 	taste_description = "spinning"
 	process_flags = ORGANIC | SYNTHETIC
@@ -736,7 +745,7 @@
 	description = "A toxin that quickly purges medicines and metabolizes very slowly."
 	reagent_state = LIQUID
 	color = "#3C5133"
-	metabolization_rate = 0.08 * REAGENTS_METABOLISM
+	base_metab = 0.08 * REAGENTS_METABOLISM
 	toxpwr = 0.15
 
 /datum/reagent/toxin/anacea/on_mob_life(mob/living/carbon/M)
@@ -800,7 +809,7 @@
 	name = "Toxin Microcapsules"
 	description = "Causes heavy toxin damage after a brief time of inactivity."
 	reagent_state = LIQUID
-	metabolization_rate = 0 //stays in the system until active.
+	base_metab = 0 //stays in the system until active.
 	var/actual_metaboliztion_rate = REAGENTS_METABOLISM
 	toxpwr = 0
 	var/actual_toxpwr = 5
@@ -893,7 +902,7 @@
 	description = "A horrible cardiotoxin that protects the humble bungo pit."
 	silent_toxin = TRUE
 	color = "#EBFF8E"
-	metabolization_rate = 0.5 * REAGENTS_METABOLISM
+	base_metab = 0.5 * REAGENTS_METABOLISM
 	toxpwr = 0
 	taste_description = "tannin"
 
