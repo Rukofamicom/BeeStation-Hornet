@@ -17,20 +17,19 @@
 	metabolization_rate = base_metab*max(min((volume-5)*0.0666 + 0.5, 1.5), 0.5)  //metabolization rate +/- 50% based on current volume of the toxin in the victim
 	toxtick = toxpwr*metabolization_rate //defining current power of the toxin for this tick globally, rather than in each individual toxin
 	to_chat(M, "<span class='notice'>DEBUG: [name] tox:[toxtick] u/t:[metabolization_rate] Vol:[volume]</span>") 								//DEBUG TEXT DELETE LINE
+	if(M.drowsyness <= 60 && sedative)																											// DEBUG TEXT DELETE LINE
+		to_chat(M, "<span class='notice'>DEBUG: Drowsyness = [M.drowsyness] + [min(0.5 + volume * metabolization_rate, 5)-1]</span>") 			// DEBUG TEXT DELETE LINE
+	else if(M.drowsyness && sedative)																											// DEBUG TEXT DELETE LINE
+		to_chat(M, "<span class='notice'>DEBUG: Drowsyness = [M.drowsyness] + 0</span>") 														// DEBUG TEXT DELETE LINE
 	if(sedative) //All sedatives follow the same base formula for knockouts. 
 		if(M.drowsyness >= 50 && current_cycle >= 8)		
 			M.Sleeping(40, 0)
 		if(M.drowsyness <= 60) //Toxins will never push drowsyness beyond 60 so that waking from a waning sedative is possible before it has completely left the system. 
-			M.drowsyness += min(volume*metabolization_rate, 5)
-	if(M.drowsyness <= 60 && sedative)																											// DEBUG TEXT DELETE LINE
-		to_chat(M, "<span class='notice'>DEBUG: Drowsyness = [M.drowsyness] + [min(volume*metabolization_rate, 5)]</span>") 					// DEBUG TEXT DELETE LINE
-	else if(M.drowsyness && sedative)																											// DEBUG TEXT DELETE LINE
-		to_chat(M, "<span class='notice'>DEBUG: Drowsyness = [M.drowsyness] + 0</span>") 														// DEBUG TEXT DELETE LINE
+			M.drowsyness += min(0.5 + volume * metabolization_rate, 5)
 	if(toxpwr)
 		. = TRUE
 	if(name == "Toxin")
 		M.adjustToxLoss(toxtick*REM, 0)
-		to_chat(M, "<span class='danger'>DEBUG: Should only appear for normal, basic toxin</span>") 											//DEBUG TEXT DELETE LINE
 	..()
 
 /datum/reagent/toxin/amatoxin
