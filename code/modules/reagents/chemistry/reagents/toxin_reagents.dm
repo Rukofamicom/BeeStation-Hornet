@@ -8,7 +8,7 @@
 	taste_description = "bitterness"
 	taste_mult = 1.2
 	var/toxpwr = 3.75 //How much total damage the toxin does per unit
-	var/toxtick = 0 //How much power the current tick of the toxin has, based on toxpwr and metaboliation_rate
+	var/toxtick = 0 //How much power the current tick of the toxin has, based on toxpwr and metabolization_rate
 	var/sedative = 0 //Does this toxin have a sedative effect?
 	var/base_metab = REAGENTS_METABOLISM //Base metabolism doesn't change, but actual metabolism does for toxins
 	var/silent_toxin = FALSE //won't produce a pain message when processed by liver/life() if there isn't another non-silent toxin present.
@@ -28,7 +28,6 @@
 			M.drowsyness += min(0.5 + volume * metabolization_rate, 5)
 	if(toxpwr)
 		. = TRUE
-	if(name == "Toxin")
 		M.adjustToxLoss(toxtick*REM, 0)
 	..()
 
@@ -36,7 +35,7 @@
 	name = "Amatoxin"
 	description = "A powerful poison derived from certain species of mushroom."
 	color = "#792300" // rgb: 121, 35, 0
-	toxpwr = 2.5
+	toxpwr = 7
 	taste_description = "mushroom"
 
 /datum/reagent/toxin/mutagen
@@ -73,7 +72,7 @@
 	specific_heat = SPECIFIC_HEAT_PLASMA
 	taste_mult = 1.5
 	color = "#8228A0"
-	toxpwr = 3
+	toxpwr = 7.5
 	process_flags = ORGANIC | SYNTHETIC
 
 /datum/reagent/toxin/plasma/on_mob_life(mob/living/carbon/C)
@@ -114,15 +113,16 @@
 		. = FALSE
 
 	if(.)
-		C.adjustOxyLoss(5, 0)
-		C.losebreath += 2
+		C.adjustOxyLoss((metabolization_rate*12.5), 0)
+		C.losebreath += 1
 		if(prob(20))
 			C.emote("gasp")
+		C.reagents.add_reagent(/datum/reagent/toxin/histamine,metabolization_rate*3.75)
 	..()
 
 /datum/reagent/toxin/slimejelly
 	name = "Slime Jelly"
-	description = "A gooey semi-liquid produced from one of the deadliest lifeforms in existence. SO REAL."
+	description = "A gooey semi-liquid produced from one of the deadliest lifeforms in existence."
 	color = "#801E28" // rgb: 128, 30, 40
 	toxpwr = 0
 	taste_description = "slime"
