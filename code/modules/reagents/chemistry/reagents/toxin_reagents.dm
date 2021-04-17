@@ -130,7 +130,7 @@
 	taste_mult = 1.3
 
 /datum/reagent/toxin/slimejelly/on_mob_life(mob/living/carbon/M)
-	if(prob(10) && !isoozeling && !isslimeperson)
+	if(prob(10) && !isoozeling(M) && !isslimeperson(M))
 		to_chat(M, "<span class='danger'>Your insides are burning!</span>")
 	..()
 
@@ -143,7 +143,7 @@
 	taste_mult = 1.5
 
 /datum/reagent/toxin/slimeooze/on_mob_life(mob/living/carbon/M)
-	if(prob(10) && !isoozeling && !isslimeperson)
+	if(prob(10) && !isoozeling(M) && !isslimeperson(M))
 		to_chat(M, "<span class='danger'>Your insides are burning!</span>")
 	..()
 
@@ -182,7 +182,7 @@
 			to_chat(M, "<span class='notice'>Your chest feels strangely heavy</span>")
 		if(para >= 5 && prob(min(para, 100)))
 			M.Paralyze(60, 0)
-		if(para >= 15 && M.IsParalyzed)
+		if(para >= 15 && M.IsParalyzed())
 			M.losebreath++
 	..()
 
@@ -244,7 +244,7 @@
 	taste_mult = 1
 
 /datum/reagent/toxin/plantbgone/reaction_obj(obj/O, reac_volume)
-	if(istype(O, /obj/structure/alien/weeds) or istype(O, /obj/structure/glowshroom) or istype(O, /obj/structure/spacevine)) 
+	if(istype(O, /obj/structure/alien/weeds) || istype(O, /obj/structure/glowshroom) || istype(O, /obj/structure/spacevine)) 
 		qdel(O) //even a small amount is enough to kill it
 
 /datum/reagent/toxin/plantbgone/reaction_mob(mob/living/M, method=TOUCH, reac_volume)
