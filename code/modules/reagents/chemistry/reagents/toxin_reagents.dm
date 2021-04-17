@@ -7,6 +7,7 @@
 	color = "#CF3600" // rgb: 207, 54, 0
 	taste_description = "bitterness"
 	taste_mult = 1.2
+	metabolization_rate = 0 //Starts at zero, so the first tick of each chem does nothing and it can be adjusted appropriately based on base_metab
 	var/toxpwr = 3.75 //How much total damage the toxin does per unit
 	var/toxtick = 0 //How much power the current tick of the toxin has, based on toxpwr and metabolization_rate
 	var/sedative = 0 //Does this toxin have a sedative effect?
@@ -115,7 +116,7 @@
 	if(.)
 		C.adjustOxyLoss((metabolization_rate*12.5), 0)
 		C.losebreath += 1
-		if(prob(20))
+		if(prob(10))
 			C.emote("gasp")
 		C.reagents.add_reagent(/datum/reagent/toxin/histamine,metabolization_rate*3.75)
 	..()
@@ -124,36 +125,26 @@
 	name = "Slime Jelly"
 	description = "A gooey semi-liquid produced from one of the deadliest lifeforms in existence."
 	color = "#801E28" // rgb: 128, 30, 40
-	toxpwr = 0
+	toxpwr = 8
 	taste_description = "slime"
 	taste_mult = 1.3
 
 /datum/reagent/toxin/slimejelly/on_mob_life(mob/living/carbon/M)
-	if(prob(10))
+	if(prob(10) && !isoozeling && !isslimeperson)
 		to_chat(M, "<span class='danger'>Your insides are burning!</span>")
-		M.adjustToxLoss(rand(20,60)*REM, 0)
-		. = 1
-	else if(prob(40))
-		M.heal_bodypart_damage(5*REM)
-		. = 1
 	..()
 
 /datum/reagent/toxin/slimeooze
 	name = "Slime Ooze"
 	description = "A gooey semi-liquid produced from Oozelings"
 	color = "#611e80"
-	toxpwr = 0
+	toxpwr = 2.5
 	taste_description = "slime"
 	taste_mult = 1.5
 
 /datum/reagent/toxin/slimeooze/on_mob_life(mob/living/carbon/M)
-	if(prob(10))
+	if(prob(10) && !isoozeling && !isslimeperson)
 		to_chat(M, "<span class='danger'>Your insides are burning!</span>")
-		M.adjustToxLoss(rand(1,10)*REM, 0)
-		. = 1
-	else if(prob(40))
-		M.heal_bodypart_damage(5*REM)
-		. = 1
 	..()
 
 /datum/reagent/toxin/minttoxin
@@ -173,12 +164,26 @@
 	description = "A deadly neurotoxin produced by the dreaded spess carp."
 	silent_toxin = TRUE
 	color = "#003333" // rgb: 0, 51, 51
-	toxpwr = 2
+	toxpwr = 0
+	base_metab = 0.0625 * REAGENTS_METABOLISM
 	taste_description = "fish"
+	var/para = 0
+	var/alert = 0
 
-/datum/reagent/toxin/carpotoxin/on_mob_metabolize(mob/living/carbon/L)
-	if(iscatperson(L))
-		toxpwr = 0
+/datum/reagent/toxin/carpotoxin/on_mob_life(mob/living/carbon/M)
+	if(!iscatperson(M))
+		to_chat(M, "<span class='notice'>DEBUG: para = [para] + [max((metabolization_rate*8)-0.05, 0)]</span>")  //DEBUG TEXT
+		para += max((metabolization_rate*8)-0.05, 0)
+		if(para >= 5 && alert == 0)
+			alert++
+			to_chat(M, "<span class='notice'>You begin to feel numb</span>")
+		if(para >= 15 && alert == 1)
+			alert++
+			to_chat(M, "<span class='notice'>Your chest feels strangely heavy</span>")
+		if(para >= 5 && prob(min(para, 100)))
+			M.Paralyze(60, 0)
+		if(para >= 15 && M.IsParalyzed)
+			M.losebreath++
 	..()
 
 /datum/reagent/toxin/zombiepowder
@@ -206,7 +211,7 @@
 	description = "A strong neurotoxin that slows metabolism to a death-like state while keeping the patient fully active. Causes toxin buildup if used too long."
 	reagent_state = SOLID
 	color = "#664700" // rgb: 102, 71, 0
-	toxpwr = 0.8
+	toxpwr = 0.5
 	taste_description = "death"
 
 /datum/reagent/toxin/ghoulpowder/on_mob_metabolize(mob/living/L)
@@ -218,9 +223,7 @@
 	..()
 
 /datum/reagent/toxin/ghoulpowder/on_mob_life(mob/living/carbon/M)
-	M.adjustOxyLoss(1*REM, 0)
 	..()
-	. = 1
 
 /datum/reagent/toxin/mindbreaker
 	name = "Mindbreaker Toxin"
@@ -241,14 +244,8 @@
 	taste_mult = 1
 
 /datum/reagent/toxin/plantbgone/reaction_obj(obj/O, reac_volume)
-	if(istype(O, /obj/structure/alien/weeds))
-		var/obj/structure/alien/weeds/alien_weeds = O
-		alien_weeds.take_damage(rand(15,35), BRUTE, 0) // Kills alien weeds pretty fast
-	else if(istype(O, /obj/structure/glowshroom)) //even a small amount is enough to kill it
-		qdel(O)
-	else if(istype(O, /obj/structure/spacevine))
-		var/obj/structure/spacevine/SV = O
-		SV.on_chem_effect(src)
+	if(istype(O, /obj/structure/alien/weeds) or istype(O, /obj/structure/glowshroom) or istype(O, /obj/structure/spacevine)) 
+		qdel(O) //even a small amount is enough to kill it
 
 /datum/reagent/toxin/plantbgone/reaction_mob(mob/living/M, method=TOUCH, reac_volume)
 	if(method == VAPOR)
