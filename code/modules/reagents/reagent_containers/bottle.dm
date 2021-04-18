@@ -170,20 +170,20 @@
 	desc = "A small bottle. Contains sodium thiopental."
 	list_reagents = list(/datum/reagent/toxin/sodium_thiopental = 30)
 
-/obj/item/reagent_containers/glass/bottle/coniine
-	name = "coniine bottle"
-	desc = "A small bottle. Contains coniine."
-	list_reagents = list(/datum/reagent/toxin/coniine = 30)
+/obj/item/reagent_containers/glass/bottle/lexorin
+	name = "lexorin bottle"
+	desc = "A small bottle. Contains lexorin."
+	list_reagents = list(/datum/reagent/toxin/lexorin = 30)
 
 /obj/item/reagent_containers/glass/bottle/curare
 	name = "curare bottle"
 	desc = "A small bottle. Contains curare."
 	list_reagents = list(/datum/reagent/toxin/curare = 30)
 
-/obj/item/reagent_containers/glass/bottle/amanitin
-	name = "amanitin bottle"
-	desc = "A small bottle. Contains amanitin."
-	list_reagents = list(/datum/reagent/toxin/amanitin = 30)
+/obj/item/reagent_containers/glass/bottle/delayed
+	name = "Toxin Microcapsules Bottle"
+	desc = "A small bottle filled with toxic capsules dissolve a while after injection."
+	list_reagents = list(/datum/reagent/toxin/delayed = 30)
 
 /obj/item/reagent_containers/glass/bottle/histamine
 	name = "histamine bottle"

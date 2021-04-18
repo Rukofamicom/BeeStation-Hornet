@@ -7,32 +7,32 @@
 	color = "#CF3600" // rgb: 207, 54, 0
 	taste_description = "bitterness"
 	taste_mult = 1.2
-	metabolization_rate = 0 //Starts at zero, so the first tick of each chem does nothing and it can be adjusted appropriately based on base_metab
-	var/toxpwr = 3.75 //How much total damage the toxin does per unit
-	var/toxtick = 0 //How much power the current tick of the toxin has, based on toxpwr and metabolization_rate
-	var/sedative = 0 //Does this toxin have a sedative effect?
-	var/base_metab = REAGENTS_METABOLISM //Base metabolism doesn't change, but actual metabolism does for toxins
-	var/silent_toxin = FALSE //won't produce a pain message when processed by liver/life() if there isn't another non-silent toxin present.
+	metabolization_rate = 0 														//Starts at zero, so the first tick of each chem does nothing and it can be adjusted appropriately based on base_metab
+	var/toxpwr = 3.75 																//How much total damage the toxin does per unit
+	var/toxtick = 0 																//How much power the current tick of the toxin has, based on toxpwr and metabolization_rate
+	var/sedative = 0 																//Does this toxin have a sedative effect?
+	var/base_metab = REAGENTS_METABOLISM 											//Base metabolism doesn't change, but actual metabolism does for toxins
+	var/silent_toxin = FALSE 														//won't produce a pain message when processed by liver/life() if there isn't another non-silent toxin present.
 
 /datum/reagent/toxin/on_mob_life(mob/living/carbon/M)
-	metabolization_rate = base_metab*max(min((volume-5)*0.0666 + 0.5, 1.5), 0.5)  //metabolization rate +/- 50% based on current volume of the toxin in the victim
-	toxtick = toxpwr*metabolization_rate //defining current power of the toxin for this tick globally, rather than in each individual toxin
+	metabolization_rate = base_metab*max(min((volume-5)*0.0666 + 0.5, 1.5), 0.5)  	//metabolization rate +/- 50% based on current volume of the toxin in the victim
+	toxtick = toxpwr*metabolization_rate 											//defining current power of the toxin for this tick globally, rather than in each individual toxin
 	to_chat(M, "<span class='notice'>DEBUG: [name] tox:[toxtick] u/t:[metabolization_rate] Vol:[volume]</span>") 								//DEBUG TEXT DELETE LINE
 	if(M.drowsyness <= 60 && sedative)																											// DEBUG TEXT DELETE LINE
 		to_chat(M, "<span class='notice'>DEBUG: Drowsyness = [M.drowsyness] + [min(0.5 + volume * metabolization_rate, 5)-1]</span>") 			// DEBUG TEXT DELETE LINE
 	else if(M.drowsyness && sedative)																											// DEBUG TEXT DELETE LINE
 		to_chat(M, "<span class='notice'>DEBUG: Drowsyness = [M.drowsyness] + 0</span>") 														// DEBUG TEXT DELETE LINE
-	if(sedative) //All sedatives follow the same base formula for knockouts. 
+	if(sedative) 																	//All sedatives follow the same base formula for knockouts. 
 		if(M.drowsyness >= 50 && current_cycle >= 8)		
 			M.Sleeping(40, 0)
-		if(M.drowsyness <= 60) //Toxins will never push drowsyness beyond 60 so that waking from a waning sedative is possible before it has completely left the system. 
-			M.drowsyness += min(0.5 + volume * metabolization_rate, 5)
+		if(M.drowsyness <= 60) 														//Toxins will never push drowsyness beyond 60 so that waking from a waning sedative is possible before it has completely left the system. 
+			M.drowsyness += min(0.5 + volume * metabolization_rate, 5)*sedative
 	if(toxpwr)
 		. = TRUE
 		M.adjustToxLoss(toxtick*REM, 0)
 	..()
 
-/datum/reagent/toxin/amatoxin
+/datum/reagent/toxin/amatoxin	//Relatively powerful but ordinary toxin. 
 	name = "Amatoxin"
 	description = "A powerful poison derived from certain species of mushroom."
 	color = "#792300" // rgb: 121, 35, 0
@@ -100,7 +100,7 @@
 		return
 	..()
 
-/datum/reagent/toxin/lexorin
+/datum/reagent/toxin/lexorin	//Lethal and fast acting toxin that targets the respiratory system
 	name = "Lexorin"
 	description = "A powerful poison used to stop respiration."
 	color = "#7DC3A0"
@@ -110,15 +110,15 @@
 /datum/reagent/toxin/lexorin/on_mob_life(mob/living/carbon/C)
 	. = TRUE
 
-	if(HAS_TRAIT(C, TRAIT_NOBREATH))
+	if(HAS_TRAIT(C, TRAIT_NOBREATH))	//No effect on targets that don't need to breathe
 		. = FALSE
 
 	if(.)
-		C.adjustOxyLoss((metabolization_rate*12.5), 0)
+		C.adjustOxyLoss((metabolization_rate*12.5), 0)	//2.5-7.5 oxyloss based on current volume of lexorin
 		C.losebreath += 1
 		if(prob(10))
 			C.emote("gasp")
-		C.reagents.add_reagent(/datum/reagent/toxin/histamine,metabolization_rate*3.75)
+		C.reagents.add_reagent(/datum/reagent/toxin/histamine,metabolization_rate*2.5) //0.5-1.5u of histamine generation
 	..()
 
 /datum/reagent/toxin/slimejelly
@@ -130,7 +130,7 @@
 	taste_mult = 1.3
 
 /datum/reagent/toxin/slimejelly/on_mob_life(mob/living/carbon/M)
-	if(prob(10) && !isoozeling(M) && !isslimeperson(M))
+	if(prob(10) && !isoozeling(M) && !isslimeperson(M))						//Shouldn't burn slime people
 		to_chat(M, "<span class='danger'>Your insides are burning!</span>")
 	..()
 
@@ -159,30 +159,29 @@
 		M.gib()
 	return ..()
 
-/datum/reagent/toxin/carpotoxin
-	name = "Carpotoxin"
+/datum/reagent/toxin/carpotoxin		//Very slow acting neurotoxin, eventually resulting in total loss of movement and suffocation if the effects are completely ignored. Intended as more of a meme/prank toxin than an effective one.
+	name = "Carpotoxin"				//Low doses are completely non-lethal, and even a massive dose gives players a minimum of about five minutes of flopping over in order to seek a chem purge. 
 	description = "A deadly neurotoxin produced by the dreaded spess carp."
 	silent_toxin = TRUE
 	color = "#003333" // rgb: 0, 51, 51
 	toxpwr = 0
-	base_metab = 0.0625 * REAGENTS_METABOLISM
+	base_metab = 0.0625 * REAGENTS_METABOLISM						//This is absurdly slow to compliment the absurdly slow paralysis buildup detailed below.
 	taste_description = "fish"
 	var/para = 0
 	var/alert = 0
 
 /datum/reagent/toxin/carpotoxin/on_mob_life(mob/living/carbon/M)
 	if(!iscatperson(M))
-		to_chat(M, "<span class='notice'>DEBUG: para = [para] + [max((metabolization_rate*8)-0.05, 0)]</span>")  //DEBUG TEXT
-		para += max((metabolization_rate*8)-0.05, 0)
+		para += max((metabolization_rate*8)-0.05, 0)				//Paralysis slowly builds at a rate of 0.05-0.25% per tick. Treatment does not become necessary for a long time
 		if(para >= 5 && alert == 0)
 			alert++
-			to_chat(M, "<span class='notice'>You begin to feel numb</span>")
+			to_chat(M, "<span class='notice'>You begin to feel numb</span>")  //Ominous warning message once the toxin has advanced far enough to begin to trigger paralysis
 		if(para >= 15 && alert == 1)
 			alert++
 			to_chat(M, "<span class='notice'>Your chest feels strangely heavy</span>")
-		if(para >= 5 && prob(min(para, 100)))
+		if(para >= 5 && prob(min(para, 100)))						//Paralysis doesn't start to proc until the buildup has reached a 5% chance - at minimum this will take 20 ticks to reach.
 			M.Paralyze(60, 0)
-		if(para >= 15 && M.IsParalyzed())
+		if(para >= 15 && M.IsParalyzed())							//Paralysis procs begin to trigger suffocation. 60 ticks at minimum to reach this stage, and procs will still be too far apart to do any real damage for the time being.
 			M.losebreath++
 	..()
 
@@ -193,12 +192,11 @@
 	reagent_state = SOLID
 	color = "#669900" // rgb: 102, 153, 0
 	toxpwr = 0
-	taste_description = "death"
+	taste_description = "death"														//Ominous flavor description
 
 /datum/reagent/toxin/zombiepowder/on_mob_life(mob/living/carbon/M)
-	if(current_cycle >= 10) // delayed activation for toxin
-		M.adjustStaminaLoss((current_cycle - 5)*REM, 0)
-	if(M.getStaminaLoss() >= 145) // fake death tied to stamina for interesting interactions - 23 ticks to fake death with pure ZP
+	M.adjustStaminaLoss(max(((metabolization_rate*2*current_cycle)-5), 0)*REM, 0)   //Delay before stamina damage starts ramping up, 4-13 tick delay based on volume
+	if(M.getStaminaLoss() >= 145) 													//Fake death directly tied to stamina for versatility, but won't trigger until deep stamcrit
 		M.fakedeath(type)
 	..()
 
@@ -230,18 +228,24 @@
 	description = "A mild hallucinogen. Beneficial to some mental patients."
 	color = "#B31008" // rgb: 139, 166, 233
 	toxpwr = 0
+	var/countdown = 0
 	taste_description = "sourness"
 
 /datum/reagent/toxin/mindbreaker/on_mob_life(mob/living/carbon/M)
 	M.hallucination += 5
-	return ..()
+	..()
+
+/datum/reagent/toxin/mindbreaker/on_mob_end_metabolize(mob/living/M)
+	if(iscarbon(M))
+		var/mob/living/carbon/N = M
+		N.hal_screwyhud = SCREWYHUD_NONE
+	..()
 
 /datum/reagent/toxin/plantbgone
 	name = "Plant-B-Gone"
 	description = "A harmful toxic mixture to kill plantlife. Do not ingest!"
 	color = "#49002E" // rgb: 73, 0, 46
-	toxpwr = 1
-	taste_mult = 1
+	toxpwr = 2
 
 /datum/reagent/toxin/plantbgone/reaction_obj(obj/O, reac_volume)
 	if(istype(O, /obj/structure/alien/weeds) || istype(O, /obj/structure/glowshroom) || istype(O, /obj/structure/spacevine)) 
@@ -259,12 +263,13 @@
 	name = "Weed Killer"
 	description = "A harmful toxic mixture to kill weeds. Do not ingest!"
 	color = "#4B004B" // rgb: 75, 0, 75
+	toxpwr = 2.5
 
 /datum/reagent/toxin/pestkiller
 	name = "Pest Killer"
 	description = "A harmful toxic mixture to kill pests. Do not ingest!"
 	color = "#4B004B" // rgb: 75, 0, 75
-	toxpwr = 1
+	toxpwr = 2.5
 
 /datum/reagent/toxin/pestkiller/reaction_mob(mob/living/M, method=TOUCH, reac_volume)
 	..()
@@ -276,7 +281,7 @@
 	name = "Spore Toxin"
 	description = "A natural toxin produced by blob spores that inhibits vision when ingested."
 	color = "#9ACD32"
-	toxpwr = 1
+	toxpwr = 2.5
 
 /datum/reagent/toxin/spore/on_mob_life(mob/living/carbon/C)
 	C.damageoverlaytemp = 60
@@ -296,9 +301,9 @@
 	M.IgniteMob()
 	return ..()
 
-/datum/reagent/toxin/chloralhydrate
+/datum/reagent/toxin/chloralhydrate				// Most powerful sedative available, but can be lethal.
 	name = "Chloral Hydrate"
-	description = "A sedative that also induces confusion"
+	description = "A powerful sedative"
 	silent_toxin = TRUE
 	reagent_state = SOLID
 	color = "#000067" // rgb: 0, 0, 103
@@ -307,7 +312,8 @@
 	base_metab = 1.5 * REAGENTS_METABOLISM
 
 /datum/reagent/toxin/chloralhydrate/on_mob_life(mob/living/carbon/M)
-	M.confused += 2
+	if(M.confused <= 20)
+		M.confused += (metabolization_rate * 5 - 1)					//Gain 1 - 3 confusion per tick. Can result in net-zero confusion, since 1 heals naturally every tick.
 	if(current_cycle >= 50 && M.drowsyness >= 50)
 		toxpwr = (current_cycle - 50)
 	..()
@@ -325,8 +331,11 @@
 /datum/reagent/toxin/fakebeer/on_mob_life(mob/living/carbon/M)
 	if(current_cycle == 8)
 		sedative = 1
-		M.confused += 20
-		M.drowsyness += 30
+		M.confused += min(20, volume*5)
+		M.drowsyness += min(35, volume*8)
+		to_chat(M, "<span class='notice'>You feel very lightheaded</span>")
+	if(current_cycle >= 9 && M.confused <= 20)
+		M.confused += 2	
 	if(current_cycle >= 50 && M.drowsyness >= 50)
 		toxpwr = (current_cycle - 50)
 	return ..()
@@ -360,19 +369,24 @@
 
 /datum/reagent/toxin/staminatoxin
 	name = "Tirizene"
-	description = "A nonlethal poison that causes extreme fatigue and weakness in its victim."
+	description = "A nonlethal poison that causes extreme fatigue and weakness in its victim. More potent when ingested"
 	silent_toxin = TRUE
 	color = "#6E2828"
-	data = 13
+	base_metab = 2.0 * REAGENTS_METABOLISM
 	toxpwr = 0
+	var/ing = 1
+
+/datum/reagent/toxin/staminatoxin/reaction_mob(mob/living/M, method=TOUCH, reac_volume, show_message = 1)
+	if(iscarbon(M) && M.stat != DEAD)
+		if(method in list(INGEST))			// Bartenders with an emag get easy access to this chem, it'd be pretty good if it was more effective when in food/drinks
+			ing = 2
 
 /datum/reagent/toxin/staminatoxin/on_mob_life(mob/living/carbon/M)
-	M.adjustStaminaLoss(REM * data, 0)
-	data = max(data - 1, 3)
-	..()
+	M.adjustStaminaLoss(metabolization_rate * ing * 8, 0)
 	. = 1
+	..()
 
-/datum/reagent/toxin/polonium
+/datum/reagent/toxin/polonium				//Available only via uplink, so quite powerful
 	name = "Polonium"
 	description = "An extremely radioactive material in liquid form. Ingestion results in fatal irradiation."
 	reagent_state = LIQUID
@@ -382,7 +396,7 @@
 	process_flags = ORGANIC | SYNTHETIC
 
 /datum/reagent/toxin/polonium/on_mob_life(mob/living/carbon/M)
-	M.radiation += 10
+	M.radiation += 100*metabolization_rate	//5-15 radiation per tick. Totals to 100 radiation per unit injected.
 	..()
 
 /datum/reagent/toxin/histamine
@@ -397,7 +411,7 @@
 
 /datum/reagent/toxin/histamine/on_mob_life(mob/living/carbon/M)
 	if(prob(50))
-		switch(pick(1, 2, 3, 4))
+		switch(pick(1, 2, 3))
 			if(1)
 				to_chat(M, "<span class='danger'>You can barely see!</span>")
 				M.blur_eyes(3)
@@ -405,87 +419,83 @@
 				M.emote("cough")
 			if(3)
 				M.emote("sneeze")
-			if(4)
-				if(prob(75))
-					to_chat(M, "You scratch at an itch.")
-					M.adjustBruteLoss(2*REM, 0)
-					. = 1
 	..()
 
-/datum/reagent/toxin/histamine/overdose_process(mob/living/M)
-	M.adjustOxyLoss(2*REM, 0)
-	M.adjustBruteLoss(2*REM, FALSE, FALSE, BODYPART_ORGANIC)
-	M.adjustToxLoss(2*REM, 0)
+/datum/reagent/toxin/histamine/overdose_process(mob/living/carbon/M) 	//Anaphylaxis
+	if(prob(volume))													//At time of overdose trigger, this will be 33% per tick, and will likely continue to worsen
+		M.losebreath += 3
+	if(prob(volume/10))													//Low chance of cardiac arrest, unless epinephrine is present.
+		if(!M.undergoing_cardiac_arrest() && M.can_heartattack() && !holder.has_reagent(/datum/reagent/medicine/epinephrine))
+			M.set_heartattack(TRUE)
+			if(M.stat == CONSCIOUS)
+				M.visible_message("<span class='userdanger'>[M] clutches at [M.p_their()] chest as if [M.p_their()] heart stopped!</span>")
 	..()
 	. = 1
 
 /datum/reagent/toxin/formaldehyde
 	name = "Formaldehyde"
-	description = "Formaldehyde, on its own, is a fairly weak toxin. It contains trace amounts of Histamine, very rarely making it decay into Histamine."
+	description = "Formaldehyde, on its own, is a fairly weak toxin, but it triggers a histamine response inside the body. Useful for preserving dead bodies."
 	silent_toxin = TRUE
 	reagent_state = LIQUID
 	color = "#B4004B"
 	base_metab = 0.5 * REAGENTS_METABOLISM
-	toxpwr = 1
+	toxpwr = 2.5
 
 /datum/reagent/toxin/formaldehyde/on_mob_life(mob/living/carbon/M)
-	if(prob(5))
-		holder.add_reagent(/datum/reagent/toxin/histamine, pick(5,15))
-		holder.remove_reagent(/datum/reagent/toxin/formaldehyde, 1.2)
-	else
-		return ..()
+	if(prob(20))
+		holder.add_reagent(/datum/reagent/toxin/histamine, metabolization_rate*10)  //1u Formaldehyde will produce roughly 2u Histamine, which metabolizes at half the speed.
+	..()
 
-/datum/reagent/toxin/venom
+/datum/reagent/toxin/venom 											//Only available via traitor uplink, so quite powerful
 	name = "Venom"
-	description = "An exotic poison extracted from highly toxic fauna. Causes scaling amounts of toxin damage and bruising depending and dosage. Often decays into Histamine."
+	description = "An exotic poison extracted from highly toxic fauna, it is very toxic and also triggers a histamine response"
 	reagent_state = LIQUID
 	color = "#F0FFF0"
-	base_metab = 0.25 * REAGENTS_METABOLISM
-	toxpwr = 0
+	base_metab = 0.5 * REAGENTS_METABOLISM
 
 /datum/reagent/toxin/venom/on_mob_life(mob/living/carbon/M)
-	toxpwr = 0.2*volume
-	M.adjustBruteLoss((0.3*volume)*REM, 0)
-	. = 1
-	if(prob(15))
-		M.reagents.add_reagent(/datum/reagent/toxin/histamine, pick(5,10))
-		M.reagents.remove_reagent(/datum/reagent/toxin/venom, 1.1)
-	else
-		..()
+	toxpwr = max(5, volume)											//This double-dips making it especially potent in large volumes, but never particularly bad at low ones. Only available via uplink
+	if(prob(toxpwr*4))
+		M.reagents.add_reagent(/datum/reagent/toxin/histamine, 2)	//Steadily produces histamine at low volumes, rapidly at high volumes. 
+	..()
 
 /datum/reagent/toxin/fentanyl
 	name = "Fentanyl"
-	description = "Fentanyl will inhibit brain function and cause toxin damage before eventually incapacitating its victim."
+	description = "Fentanyl will inhibit brain function and cause toxin damage." //No longer a sedative due to gaining SCREWYHUD_HEALTHY. Just a mild toxin that inhibits perception.
 	reagent_state = LIQUID
 	color = "#64916E"
+	toxpwr = 2
 	base_metab = 0.5 * REAGENTS_METABOLISM
-	toxpwr = 0
 
 /datum/reagent/toxin/fentanyl/on_mob_life(mob/living/carbon/M)
-	M.adjustOrganLoss(ORGAN_SLOT_BRAIN, 3*REM, 150)
-	if(M.toxloss <= 60)
-		M.adjustToxLoss(1*REM, 0)
-	if(current_cycle >= 18)
-		M.Sleeping(40, 0)
+	M.adjustOrganLoss(ORGAN_SLOT_BRAIN, toxtick*REM, 150)
+	M.hal_screwyhud = SCREWYHUD_HEALTHY							//inhibits normal brain function, and enables toxin mixes to not immediately make visible HUD changes. 
 	..()
-	return TRUE
+
 
 /datum/reagent/toxin/cyanide
 	name = "Cyanide"
-	description = "An infamous poison known for its use in assassination. Causes small amounts of toxin damage with a small chance of oxygen damage or a stun."
+	description = "An infamous poison known for its use in assassination. Deals progressively worse damage and symptoms with time"
 	reagent_state = LIQUID
 	color = "#00B4FF"
 	base_metab = 0.125 * REAGENTS_METABOLISM
-	toxpwr = 1.25
+	toxpwr = 0
+	var/alert = 0
 
 /datum/reagent/toxin/cyanide/on_mob_life(mob/living/carbon/M)
-	if(prob(5))
-		M.losebreath += 1
-	if(prob(8))
-		to_chat(M, "You feel horrendously weak!")
-		M.Stun(40, 0)
-		M.adjustToxLoss(2*REM, 0)
-	return ..()
+	if(toxpwr <= 20)
+		toxpwr = toxpwr + metabolization_rate*2				//Power starts at 0 and goes up by 2 for every unit metabolized. 10u is just enough for a lethal dose, but larger doses will result in faster lethality.
+	if(toxpwr >= 5 && alert == 0)
+		alert++
+		to_chat(M, "<span class='danger'>Your head is throbbing!</span>")
+	if(toxpwr >= 10 && M.confused <= 20)
+		M.confused += 2
+	if(toxpwr >= 15)
+		if(prob(toxpwr/2))
+			M.visible_message("<span class='danger'>[M] starts having a seizure! They appear to be frothing at the mouth!</span>", "<span class='userdanger'>You have a seizure!</span>")
+			M.Unconscious(100)
+			M.Jitter(350)
+	..()
 
 /datum/reagent/toxin/bad_food
 	name = "Bad Food"
@@ -502,7 +512,7 @@
 	silent_toxin = TRUE
 	reagent_state = LIQUID
 	color = "#C8C8C8"
-	base_metab = 0.4 * REAGENTS_METABOLISM
+	base_metab = REAGENTS_METABOLISM
 	toxpwr = 0
 
 /datum/reagent/toxin/itching_powder/reaction_mob(mob/living/M, method=TOUCH, reac_volume)
@@ -522,103 +532,120 @@
 		to_chat(M, "You scratch at your arm.")
 		M.adjustBruteLoss(0.2*REM, 0)
 		. = 1
-	if(prob(3))
-		M.reagents.add_reagent(/datum/reagent/toxin/histamine,rand(1,3))
-		M.reagents.remove_reagent(/datum/reagent/toxin/itching_powder,1.2)
+	if(prob(5))
+		M.reagents.add_reagent(/datum/reagent/toxin/histamine, 1)
 		return
 	..()
 
-/datum/reagent/toxin/initropidril
+/datum/reagent/toxin/initropidril									//Extremely potent, but only available via uplink.
 	name = "Initropidril"
-	description = "A powerful poison with insidious effects. It can cause stuns, lethal breathing failure, and cardiac arrest."
+	description = "A powerful poison with insidious effects. It can cause paralysis, breathing failure, and cardiac arrest."
 	silent_toxin = TRUE
 	reagent_state = LIQUID
 	color = "#7F10C0"
 	base_metab = 0.5 * REAGENTS_METABOLISM
-	toxpwr = 2.5
+	toxpwr = 5
+	var/roll = 0
 
 /datum/reagent/toxin/initropidril/on_mob_life(mob/living/carbon/C)
-	if(prob(25))
-		var/picked_option = rand(1,3)
-		switch(picked_option)
+	if(prob(metabolization_rate*100))								//10%-30% chance of effects triggering based on the current volume
+		roll = rand(1,3)
+		switch(roll)
 			if(1)
 				C.Paralyze(60, 0)
-				. = TRUE
 			if(2)
 				C.losebreath += 10
 				C.adjustOxyLoss(rand(5,25), 0)
-				. = TRUE
 			if(3)
 				if(!C.undergoing_cardiac_arrest() && C.can_heartattack())
 					C.set_heartattack(TRUE)
 					if(C.stat == CONSCIOUS)
 						C.visible_message("<span class='userdanger'>[C] clutches at [C.p_their()] chest as if [C.p_their()] heart stopped!</span>")
-				else
-					C.losebreath += 10
-					C.adjustOxyLoss(rand(5,25), 0)
-					. = TRUE
-	return ..() || .
+	..()
 
-/datum/reagent/toxin/pancuronium
+/datum/reagent/toxin/pancuronium	// Rapid onset paralysis toxin, only available via uplink
 	name = "Pancuronium"
-	description = "An undetectable toxin that swiftly incapacitates its victim. May also cause breathing failure."
+	description = "A flavorless, potent muscle relaxant known for leaving its victims conscious, but unable to speak or move."
 	silent_toxin = TRUE
 	reagent_state = LIQUID
 	color = "#195096"
-	base_metab = 0.25 * REAGENTS_METABOLISM
+	base_metab = 0.5 * REAGENTS_METABOLISM							
 	toxpwr = 0
-	taste_mult = 0 // undetectable, I guess?
+	taste_mult = 0
+	var/para = 0
+	var/alert = 0
 
 /datum/reagent/toxin/pancuronium/on_mob_life(mob/living/carbon/M)
-	if(current_cycle >= 10)
-		M.Stun(40, 0)
-		. = TRUE
-	if(prob(20))
-		M.losebreath += 4
+	para += metabolization_rate 									//increases by 1 per unit metabolized, taking between 3-10 ticks per stage
+	if(para >= 1 && alert == 0)
+		alert++
+		to_chat(M, "<span class='notice'>Your legs feel wobbly</span>")
+	if(para >= 2 && alert == 1)
+		alert++
+		M.Knockdown(40, 0)
+		to_chat(M, "<span class='danger'>Your legs give out!</span>")
+	if(para >= 3 && alert == 2)								
+		alert++
+		M.Paralyze(60, 0)
+		to_chat(M, "<span class='danger'>Your body refuses to move!</span>")		//minimum of 10 ticks to reach first paralysis
+	if(para >= 4)
+		M.Paralyze(100, 0)
+		M.silent = max(M.silent, 3)
+		if(alert == 3)
+			alert++
+			to_chat(M, "<span class='danger'>You feel completely paralyzed!</span>")  //completely helpless until the toxin wears off at this point
 	..()
 
-/datum/reagent/toxin/sodium_thiopental
+/datum/reagent/toxin/sodium_thiopental			//Used to be uplink only, but is now craftable due to being the only 100% non-lethal sedative
 	name = "Sodium Thiopental"
-	description = "Sodium Thiopental induces heavy weakness in its target as well as unconsciousness."
+	description = "Sodium Thiopental is a powerful sedative, and triggers almost immediate exhaustion"
 	silent_toxin = TRUE
 	reagent_state = LIQUID
 	color = "#6496FA"
 	base_metab = 0.75 * REAGENTS_METABOLISM
+	sedative = 1								//Half as effective a sedative as Chloral Hydrate, but is also a potent stamina toxin on top of being a sedative
 	toxpwr = 0
 
 /datum/reagent/toxin/sodium_thiopental/on_mob_life(mob/living/carbon/M)
-	if(current_cycle >= 10)
-		M.Sleeping(40, 0)
-	M.adjustStaminaLoss(10*REM, 0)
+	if(M.getStaminaLoss() <= 50)
+		M.adjustStaminaLoss((metabolization_rate + 0.25) * 25, 0)  // 8-14 stamina per tick
+	else
+		M.adjustStaminaLoss((metabolization_rate + 0.25) * 15, 0)  // 6-10.5 stamina per tick - quick to exhaust, but slower to completely knock out
 	..()
-	return TRUE
+
 
 /datum/reagent/toxin/sulfonal
 	name = "Sulfonal"
-	description = "A stealthy poison that deals minor toxin damage and eventually puts the target to sleep."
+	description = "A flavorless, stealthy poison that deals slow toxin damage with mild disassociative and sedative effect"
 	silent_toxin = TRUE
 	reagent_state = LIQUID
 	color = "#7DC3A0"
-	base_metab = 0.125 * REAGENTS_METABOLISM
-	sedative = 1
-	toxpwr = 0.5
+	base_metab = 0.125 * REAGENTS_METABOLISM			
+	sedative = 1.5									//A very poor sedative despite the multiplier, but will still stack with other sedatives
+	toxpwr = 3										//Mostly intended as a slightly better version of Fentanyl that is somewhat harder to acquire
+	taste_mult = 0
 
 /datum/reagent/toxin/sulfonal/on_mob_life(mob/living/carbon/M)
+	M.hal_screwyhud = SCREWYHUD_HEALTHY
 	..()
 
-/datum/reagent/toxin/amanitin
+/datum/reagent/toxin/sulfonal/on_mob_end_metabolize(mob/living/M)
+	if(iscarbon(M))
+		var/mob/living/carbon/N = M
+		N.hal_screwyhud = SCREWYHUD_NONE
+	..()
+
+/datum/reagent/toxin/amanitin								//Available only via Botany
 	name = "Amanitin"
-	description = "A very powerful delayed toxin. Upon full metabolization, a massive amount of toxin damage will be dealt depending on how long it has been in the victim's bloodstream."
+	description = "An extremely powerful toxin extracted from a deadly mushroom."
 	silent_toxin = TRUE
 	reagent_state = LIQUID
 	color = "#FFFFFF"
 	toxpwr = 0
 	base_metab = 0.5 * REAGENTS_METABOLISM
 
-/datum/reagent/toxin/amanitin/on_mob_delete(mob/living/M)
-	var/toxdamage = current_cycle*3*REM
-	M.log_message("has taken [toxdamage] toxin damage from amanitin toxin", LOG_ATTACK)
-	M.adjustToxLoss(toxdamage)
+/datum/reagent/toxin/amanitin/on_mob_life(mob/living/M)
+	toxpwr = toxpwr + volume/20								//Similar to cyanide, but with a non-linear power scale and no visible symptoms outside of the toxin damage
 	..()
 
 /datum/reagent/toxin/lipolicide
@@ -631,79 +658,67 @@
 	base_metab = 0.5 * REAGENTS_METABOLISM
 	toxpwr = 0
 
-/datum/reagent/toxin/lipolicide/on_mob_life(mob/living/carbon/M)
+/datum/reagent/toxin/lipolicide/on_mob_life(mob/living/carbon/M)	//Valuable as a treatment for obesity in moderation
 	if(M.nutrition <= NUTRITION_LEVEL_STARVING)
-		M.adjustToxLoss(1*REM, 0)
-	M.adjust_nutrition(-3) // making the chef more valuable, one meme trap at a time
-	M.overeatduration = 0
+		toxpwr = 10													//1-3 tox per tick if starving
+	else
+		toxpwr = 0
+	M.adjust_nutrition(metabolization_rate * -15 + 0.5) 			// 1-4 nutrition lost per tick depending on current volume
+	if(current_cycle > 10)
+		M.overeatduration = 0										// Removes fat trait 10 ticks into processing
 	return ..()
 
-/datum/reagent/toxin/coniine
-	name = "Coniine"
-	description = "Coniine metabolizes extremely slowly, but deals high amounts of toxin damage and stops breathing."
-	reagent_state = LIQUID
-	color = "#7DC3A0"
-	base_metab = 0.06 * REAGENTS_METABOLISM
-	toxpwr = 1.75
-
-/datum/reagent/toxin/coniine/on_mob_life(mob/living/carbon/M)
-	M.losebreath += 5
-	return ..()
 
 /datum/reagent/toxin/spewium
 	name = "Spewium"
 	description = "A powerful emetic, causes uncontrollable vomiting.  May result in vomiting organs at high doses."
 	reagent_state = LIQUID
-	color = "#2f6617" //A sickly green color
+	color = "#2f6617" 				   //A sickly green color
 	base_metab = REAGENTS_METABOLISM
-	overdose_threshold = 29
 	toxpwr = 0
 	taste_description = "vomit"
+	taste_mult = 0						//undetectable when in food/drink
 
 /datum/reagent/toxin/spewium/on_mob_life(mob/living/carbon/C)
-	.=..()
-	if(current_cycle >=11 && prob(min(50,current_cycle)))
-		C.vomit(10, prob(10), prob(50), rand(0,4), TRUE, prob(30))
-		for(var/datum/reagent/toxin/R in C.reagents.reagent_list)
-			if(R != src)
-				C.reagents.remove_reagent(R.type,1)
-
-/datum/reagent/toxin/spewium/overdose_process(mob/living/carbon/C)
-	. = ..()
-	if(current_cycle >=33 && prob(15))
-		C.spew_organ()
-		C.vomit(0, TRUE, TRUE, 4)
-		to_chat(C, "<span class='userdanger'>You feel something lumpy come up as you vomit.</span>")
+	if(prob(min(current_cycle*2, 50)))								//25 ticks and you're vomitting uncontrollably
+		if(current_cycle >=25 && prob(15))							//Also you might start projectile vomiting your own organs
+			C.spew_organ()
+			C.vomit(0, TRUE, TRUE, 4)
+			to_chat(C, "<span class='userdanger'>You feel something lumpy come up as you vomit.</span>")
+		else							
+			C.vomit(10, prob(10), prob(50), rand(0,4), TRUE, prob(30))
+	. = TRUE
+	..()
 
 /datum/reagent/toxin/curare
 	name = "Curare"
-	description = "Causes slight toxin damage followed by chain-stunning and oxygen damage."
+	description = "Causes relatively rapid onset of paralysis and asphyxiation"
 	reagent_state = LIQUID
 	color = "#191919"
-	base_metab = 0.125 * REAGENTS_METABOLISM
-	toxpwr = 1
+	base_metab = 0.5 * REAGENTS_METABOLISM
+	toxpwr = 5
 
 /datum/reagent/toxin/curare/on_mob_life(mob/living/carbon/M)
-	if(current_cycle >= 11)
-		M.Paralyze(60, 0)
-	M.adjustOxyLoss(1*REM, 0)
-	. = 1
+	toxpwr += metabolization_rate
+	if(prob(toxtick*5))
+		M.Paralyze(100, 0)
+	if(toxtick >= 2)
+		M.losebreath += toxtick/2
 	..()
 
 /datum/reagent/toxin/heparin //Based on a real-life anticoagulant. I'm not a doctor, so this won't be realistic.
-	name = "Heparin"
-	description = "A powerful anticoagulant. Victims will bleed uncontrollably and suffer scaling bruising."
+	name = "Heparin"			
+	description = "A powerful anticoagulant. Victims will bleed internally"  //I too am not a doctor, and I removed the brute damage so it was a small degree stealthier
 	silent_toxin = TRUE
 	reagent_state = LIQUID
 	color = "#C8C8C8" //RGB: 200, 200, 200
-	base_metab = 0.2 * REAGENTS_METABOLISM
+	base_metab = 0.25 * REAGENTS_METABOLISM
 	toxpwr = 0
 
 /datum/reagent/toxin/heparin/on_mob_life(mob/living/carbon/M)
 	if(ishuman(M))
 		var/mob/living/carbon/human/H = M
 		H.bleed_rate = min(H.bleed_rate + 2, 8)
-		H.adjustBruteLoss(1, 0) //Brute damage increases with the amount they're bleeding
 		. = 1
 	return ..() || .
 
@@ -742,11 +757,11 @@
 	reagent_state = LIQUID
 	color = "#3C5133"
 	base_metab = 0.08 * REAGENTS_METABOLISM
-	toxpwr = 0.15
+	toxpwr = 5
 
 /datum/reagent/toxin/anacea/on_mob_life(mob/living/carbon/M)
 	var/remove_amt = 5
-	if(holder.has_reagent(/datum/reagent/medicine/calomel) || holder.has_reagent(/datum/reagent/medicine/pen_acid))
+	if(holder.has_reagent(/datum/reagent/medicine/calomel) || holder.has_reagent(/datum/reagent/medicine/carthatoline)) //Charcoal is less effective at hindering anacea
 		remove_amt = 0.5
 	for(var/datum/reagent/medicine/R in M.reagents.reagent_list)
 		M.reagents.remove_reagent(R.type,remove_amt)
@@ -771,9 +786,11 @@
 	reac_volume = round(reac_volume,0.1)
 	if(method == INGEST)
 		C.adjustBruteLoss(min(6*toxpwr, reac_volume * toxpwr))
+		C.visible_message("<span class='userdanger'>[C] has taken [min(6*toxpwr, reac_volume * toxpwr)] Acid damage!</span>")		//DEBUG
 		return
 	if(method == INJECT)
 		C.adjustBruteLoss(1.5 * min(6*toxpwr, reac_volume * toxpwr))
+		C.visible_message("<span class='userdanger'>[C] has taken [1.5 * min(6*toxpwr, reac_volume * toxpwr)] Acid damage!</span>")		//DEBUG
 		return
 	C.acid_act(acidpwr, reac_volume)
 
@@ -801,23 +818,20 @@
 	. = 1
 	..()
 
-/datum/reagent/toxin/delayed
+/datum/reagent/toxin/delayed									//replaced amanitin in uplink toxin kit
 	name = "Toxin Microcapsules"
-	description = "Causes heavy toxin damage after a brief time of inactivity."
+	description = "Causes rapid, heavy toxin damage after a period of inactivity."
 	reagent_state = LIQUID
-	base_metab = 0 //stays in the system until active.
+	base_metab = 0 												//stays in the system until active.
 	var/actual_metaboliztion_rate = REAGENTS_METABOLISM
-	toxpwr = 0
-	var/actual_toxpwr = 5
-	var/delay = 30
+	toxpwr = 10													//10u is enough to crit, 20u will outright kill - no damage is dealt while base_metab=0
 
 /datum/reagent/toxin/delayed/on_mob_life(mob/living/carbon/M)
-	if(current_cycle > delay)
-		holder.remove_reagent(type, actual_metaboliztion_rate * M.metabolism_efficiency)
-		M.adjustToxLoss(actual_toxpwr*REM, 0)
-		if(prob(10))
-			M.Paralyze(20, 0)
-		. = 1
+	if(current_cycle == 60)
+		to_chat(M, "<span class='danger'You feel a hot tingling all over your body!</span>")	//full minute delay before capsules start to dissolve
+	if(current_cycle >= 60)										
+		base_metab += volume/5																	//Capsules are rapidly metabolized once they start to dissolve	
+	. = 1
 	..()
 
 /datum/reagent/toxin/mimesbane
@@ -905,8 +919,7 @@
 /datum/reagent/toxin/bungotoxin/on_mob_life(mob/living/carbon/M)
 	M.adjustOrganLoss(ORGAN_SLOT_HEART, 3)
 	M.confused = M.dizziness //add a tertiary effect here if this is isn't an effective poison.
-	if(current_cycle >= 12 && prob(8))
-		var/tox_message = pick("You feel your heart spasm in your chest.", "You feel faint.","You feel you need to catch your breath.","You feel a prickle of pain in your chest.")
-		to_chat(M, "<span class='notice'>[tox_message]</span>")
+	var/tox_message = pick("You feel your heart spasm in your chest.", "You feel faint.","You feel you need to catch your breath.","You feel a prickle of pain in your chest.")
+	to_chat(M, "<span class='notice'>[tox_message]</span>")
 	. = 1
 	..()
