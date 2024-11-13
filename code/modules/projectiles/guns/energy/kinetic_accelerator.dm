@@ -333,6 +333,7 @@
 	name = "cooldown decrease"
 	desc = "Decreases the cooldown of a kinetic accelerator. Incompatible with rapid repeater mods."
 	modifier = 3.2
+	maximum_of_type = 3
 	restricted_mod_type = /obj/item/borg/upgrade/modkit/cooldown/repeater
 
 /obj/item/borg/upgrade/modkit/cooldown/install(obj/item/gun/energy/kinetic_accelerator/KA, mob/user)
