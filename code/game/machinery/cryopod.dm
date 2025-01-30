@@ -370,7 +370,7 @@ GLOBAL_LIST_EMPTY(cryopod_computers)
 		if(alert(target,"Would you like to enter cryosleep?",,"Yes","No") != "Yes")
 			return
 
-	var/generic_plsnoleave_message = " Please adminhelp before leaving the round, even if there are no administrators online!"
+	var/generic_plsnoleave_message = " Your character is being offered to ghosts because of your role!"
 
 	if(target == user && world.time - target.client.cryo_warned > 5 MINUTES)//if we haven't warned them in the last 5 minutes
 		var/caught = FALSE
@@ -382,6 +382,7 @@ GLOBAL_LIST_EMPTY(cryopod_computers)
 			alert("You're a [A.name]![generic_plsnoleave_message]")
 			caught = TRUE
 		if(caught)
+			offer_control(target)
 			target.client.cryo_warned = world.time
 			return
 
