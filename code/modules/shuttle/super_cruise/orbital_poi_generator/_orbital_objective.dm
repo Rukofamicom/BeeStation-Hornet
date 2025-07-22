@@ -45,7 +45,6 @@
 		return
 	completed = TRUE
 	//Handle payout
-	SSeconomy.distribute_funds(payout)
 	bound_bank_account.adjust_currency(ACCOUNT_CURRENCY_EXPLO, payout)
 	//Announcement
 	if(length(GLOB.announcement_systems))
