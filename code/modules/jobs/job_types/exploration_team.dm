@@ -20,7 +20,7 @@
 
 	departments = DEPT_BITFLAG_SCI
 	bank_account_department = ACCOUNT_SCI_BITFLAG
-	payment_per_department = list(ACCOUNT_SCI_ID = PAYCHECK_HARD)
+	payment_per_department = list(ACCOUNT_SCI_ID = PAYCHECK_COMMISSION) //You are awarded points for missions, convert those to money
 
 	display_order = JOB_DISPLAY_ORDER_EXPLORATION
 	rpg_title = "Sailor"

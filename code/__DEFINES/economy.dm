@@ -1,16 +1,16 @@
-#define STARTING_PAYCHECKS 5
+#define STARTING_PAYCHECKS 3
 
-#define PAYCHECK_ASSISTANT 15
+#define PAYCHECK_COMMISSION 0 //You get paid for what you do, rather than regularly. For assistants, shaft miners and explorers
 #define PAYCHECK_MINIMAL 30
-#define PAYCHECK_EASY 35
-#define PAYCHECK_MEDIUM 60
-#define PAYCHECK_HARD 90
+#define PAYCHECK_EASY 50
+#define PAYCHECK_MEDIUM 75
+#define PAYCHECK_HARD 100
 // given from nanotrasen to heads
-#define PAYCHECK_COMMAND_NT 20
+#define PAYCHECK_COMMAND_NT 40
 // given from department budget
-#define PAYCHECK_COMMAND_DEPT 80
+#define PAYCHECK_COMMAND_DEPT 160
 // Command Total
-#define PAYCHECK_COMMAND 100
+#define PAYCHECK_COMMAND 200
 #define PAYCHECK_VIP 2000
 /*	Note: The current intention for crazy amount of money to VIP is that they can be a rich shitter
 			or be targeted by antags for their money - oh, my, being rich isn't always good.
