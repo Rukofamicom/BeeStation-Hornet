@@ -319,6 +319,25 @@
 	magpulsing = TRUE
 	hat_offset = -4
 
+/obj/item/robot_model/engineering/be_transformed_to(obj/item/robot_model/old_model)
+	var/mob/living/silicon/robot/cyborg = loc
+	var/list/medical_icons = list(
+		"Drone" = image(icon = 'icons/mob/robots.dmi', icon_state = "drone_engi"),
+		"Machinified Engineer" = image(icon = 'icons/mob/robots.dmi', icon_state = "engineer")
+	)
+	var/engineer_robot_icon = show_radial_menu(cyborg, cyborg, medical_icons, custom_check = CALLBACK(src, PROC_REF(check_menu), cyborg, old_model), radius = 42, require_near = TRUE)
+	switch(engineer_robot_icon)
+		if("Machinified Engineer")
+			cyborg_base_icon = "engineer"
+			special_light_key = "engineer"
+		if("Drone")
+			cyborg_base_icon = "drone_engi"
+			special_light_key = "drone"
+			special_cover_key = "drone"
+		else
+			return FALSE
+	. = ..()
+
 // --------------------- Janitor
 /obj/item/robot_model/janitor
 	name = "Janitor"
@@ -598,6 +617,25 @@
 			taser.update_icon()
 		else
 			taser.charge_timer = 0
+
+/obj/item/robot_model/security/be_transformed_to(obj/item/robot_model/old_model)
+	var/mob/living/silicon/robot/cyborg = loc
+	var/list/medical_icons = list(
+		"Drone" = image(icon = 'icons/mob/robots.dmi', icon_state = "drone_sec"),
+		"Machinified Officer" = image(icon = 'icons/mob/robots.dmi', icon_state = "sec")
+	)
+	var/security_robot_icon = show_radial_menu(cyborg, cyborg, medical_icons, custom_check = CALLBACK(src, PROC_REF(check_menu), cyborg, old_model), radius = 42, require_near = TRUE)
+	switch(security_robot_icon)
+		if("Machinified Officer")
+			cyborg_base_icon = "sec"
+			special_light_key = "sec"
+		if("Drone")
+			cyborg_base_icon = "drone_sec"
+			special_light_key = "drone"
+			special_cover_key = "drone"
+		else
+			return FALSE
+	. = ..()
 
 // --------------------- Borgi
 /obj/item/robot_model/borgi

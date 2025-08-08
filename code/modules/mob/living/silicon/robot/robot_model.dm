@@ -20,10 +20,12 @@
 
 	var/model_select_icon = "nomod"
 
-	/// Produces the icon for the borg and, if no special_light_key is set, the lights
+	/// Produces the icon for the borg and, if no special_light_key is set, the lights(but not the cover, hence, ov)
 	var/cyborg_base_icon = "robot"
 	/// If we want specific lights, use this instead of copying lights in the dmi
 	var/special_light_key
+	/// If we want specific covers, use this instead of copying covers in the dmi. Default is "ov"
+	var/special_cover_key = "ov"
 
 // ------------------------------------------ Modules (tools)
 	/// Holds all the usable modules (tools)
